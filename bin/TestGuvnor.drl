@@ -1,0 +1,24 @@
+//created on: 24-Oct-2012
+package paolo.test
+
+//list any import classes here.
+
+import com.tescobank.tbsb.services.getscv.v4.GetSCVResponse
+import com.tescobank.tbsb.common.person.v3.PersonType
+
+
+import com.tescobank.brms.model.DetermineFalconModeResponse;
+
+//declare any global variables here
+
+
+
+
+rule "guvnor test"
+	when
+		getSCVResponse : GetSCVResponse ()
+	then
+		System.out.println("Test rule 2 in DRL firing!");
+		insert(getSCVResponse.getPerson());
+		insert(new DetermineFalconModeResponse());
+end

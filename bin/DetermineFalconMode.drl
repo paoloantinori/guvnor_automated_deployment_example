@@ -1,0 +1,98 @@
+package iteration_1
+import com.tescobank.brms.model.Response
+import com.tescobank.tbsb.services.resolveusername.v2.ResolveUsernameRequest
+import com.tescobank.tbsb.common.person.v3.ObjectFactory
+import com.tescobank.tbsb.services.getscv.v4.ResponseFormatType
+import com.tescobank.brms.model.PadScoringResponse
+import com.tescobank.tbsb.common.product.v4.TransactionsType
+import com.tescobank.brms.model.DomainModel
+import com.tescobank.brms.model.FalconMode
+import com.tescobank.brms.model.Account
+import com.tescobank.tbsb.services.getscv.v4.GetSCVRequest
+import com.tescobank.tbsb.common.personcredentials.v1.PersonCredentialsType
+import com.tescobank.tbsb.services.resolveusername.v2.ResolveUsernameResponse
+import com.tescobank.tbsb.services.getscv.v4.SavingsProducts
+import com.tescobank.tbsb.services.getscv.v4.LoansProducts
+import com.tescobank.brms.model.Request
+import com.tescobank.tbsb.common.cukf.v2.CustomerKeyFieldsType
+import com.tescobank.tbsb.common.product.v4.InsuranceProductType
+import com.tescobank.tbsb.services.common.v1.ExtendedFaultDetail
+import com.tescobank.tbsb.services.common.v1.CommonOutput
+import com.tescobank.brms.model.Falcon
+import com.tescobank.tbsb.common.person.v3.PersonType
+import com.tescobank.brms.model.Transaction
+import com.tescobank.tbsb.services.getscv.v4.GetSCVResponse
+import com.tescobank.tbsb.common.product.v4.TransactionType
+import com.tescobank.tbsb.services.getscv.v4.GetSCVFault
+import com.tescobank.tbsb.services.resolveusername.v2.ResolveUsernameFault
+import com.tescobank.tbsb.services.getscv.v4.IntfPerformGetSCVService
+import com.tescobank.tbsb.common.address.v3.AddressType
+import com.tescobank.brms.model.FalconScoringResponse
+import com.tescobank.tbsb.services.resolveusername.v2.PortType
+import com.tescobank.tbsb.services.getscv.v4.CreditCardsProducts
+import com.tescobank.brms.model.DetermineFalconModeRequest
+import com.tescobank.tbsb.services.getscv.v4.InsuranceProducts
+import com.tescobank.brms.model.DetermineFalconModeResponse
+import com.tescobank.tbsb.services.getscv.v4.GetSCVSupplementaryResponse
+import com.tescobank.tbsb.common.product.v4.ProductType
+import com.tescobank.tbsb.common.product.v4.LoansProductType
+import com.tescobank.tbsb.common.product.v4.CreditCardsProductType
+import com.tescobank.tbsb.services.resolveusername.v2.IntfPerformResolveUsernameService
+import com.tescobank.tbsb.common.personcredentials.v1.StatusType
+import com.tescobank.tbsb.common.mailerreference.v1.MailerReferenceType
+import com.tescobank.tbsb.common.product.v4.SavingsProductType
+
+
+
+
+
+ 
+import com.tescobank.brms.model.*;
+import com.tescobank.brms.model.DetermineFalconModeResponse;
+
+
+
+rule "Account.sortCode not in whitelist"
+  salience(10)
+    no-loop
+    when
+       $msg :   DomainModel(
+            account.sortCode != "40-64-17",
+            account.sortCode != "40-64-18",
+            account.sortCode != "40-64-19" 
+          )
+    then
+      System.out.println("Triggered rule: " + kcontext.getRule().getName());      
+      //System.out.println("Account.sortCode : " + $account.getSortCode());      
+      $msg.setFalconMode(FalconMode.NO_FALCON_CALL);
+      update ($msg);
+      drools.halt();
+end
+
+rule "RealTime if the amount of the payment is less then £100 "
+  salience(5)
+  no-loop
+    when
+      $msg: DomainModel(  transaction.amount < 1000 )
+    then
+      System.out.println("Triggered rule: " + kcontext.getRule().getName());      
+      $msg.setFalconMode(FalconMode.REAL_TIME);
+      update ($msg);
+end
+
+
+rule "OnlinePlus, if the amount of the payment is more £1000"
+  salience(5)
+  no-loop
+    when
+      $msg: DomainModel(  transaction.amount >= 1000 )
+    then
+      System.out.println("Triggered rule: " + kcontext.getRule().getName());      
+      $msg.setFalconMode(FalconMode.ONLINE_PLUS);
+      update ($msg);
+end
+
+
+
+
+

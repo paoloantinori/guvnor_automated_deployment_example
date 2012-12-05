@@ -1,0 +1,13 @@
+//created on: 24-Oct-2012
+package paolo.test
+
+import java.lang.Object
+
+//list any import classes here.
+
+rule "guvnor test"
+	when
+		o : Object()
+	then
+		System.out.println("Sample Rule Triggered");
+end

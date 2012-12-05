@@ -1,0 +1,248 @@
+<?xml version="1.0"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>rules</artifactId>
+  <groupId>paolo_test</groupId>
+  <version>1.0.0</version>
+  <packaging>jar</packaging>
+  <name>Sample Automatic Deployment</name>
+  <dependencies>
+    <dependency>
+      <groupId>org.drools</groupId>
+      <artifactId>drools-core</artifactId>
+      <version>5.3.0.Final</version>
+    </dependency>
+    <dependency>
+      <groupId>org.drools</groupId>
+      <artifactId>drools-decisiontables</artifactId>
+      <version>5.3.0.Final</version>
+    </dependency>
+    <dependency>
+      <groupId>org.drools</groupId>
+      <artifactId>drools-compiler</artifactId>
+      <version>5.3.0.Final</version>
+    </dependency>
+    <dependency>
+      <groupId>com.thoughtworks.xstream</groupId>
+      <artifactId>xstream</artifactId>
+      <version>1.4.3</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+  <properties>
+    <!-- guvnor/brms web interface -->
+    <brms.server.url>http://127.0.0.1:8080/jboss-brms/</brms.server.url>
+    <!-- guvnor/brms username -->
+    <brms.server.user>admin</brms.server.user>
+    <!-- guvnor/brms password -->
+    <brms.server.password>admin</brms.server.password>
+    <!-- the name of the generated changeset file, used to configure you client 
+      application to download the right rules -->
+    <brms.changeset.file>target/kagent-changeset.xml</brms.changeset.file>
+    <!-- the name of the full image of the repository that we are going to 
+      deploy and, IMPORTANT, that will override the previous Guvnor status -->
+    <brms.repository_dump.file>repository_export.xml</brms.repository_dump.file>
+    <!-- the model file that contains the structure if the facts(pojos) used 
+      by the rules -->
+    <brms.model.file>${project.build.directory}/dependency/brms-model-1.0.0.jar</brms.model.file>
+  </properties>
+  <profiles>
+    <profile>
+      <id>build_technical_rules</id>
+      <dependencies>
+        <!-- adds functionality to produce a full repository import file -->
+        <dependency>
+          <groupId>org.drools</groupId>
+          <artifactId>guvnor-bulk-importer</artifactId>
+          <version>6.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+          <groupId>joda-time</groupId>
+          <artifactId>joda-time</artifactId>
+          <version>1.6</version>
+        </dependency>
+      </dependencies>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+              <execution>
+                <phase>process-sources</phase>
+                <goals>
+                  <goal>copy-dependencies</goal>
+                </goals>
+                <configuration>
+                  <includeArtifactIds>brms-model</includeArtifactIds>
+                  <outputDirectory>${targetdirectory}</outputDirectory>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jar-plugin</artifactId>
+            <configuration>
+              <archive>
+                <manifest>
+                  <addClasspath>true</addClasspath>
+                  <mainClass>org.jboss.drools.guvnor.importgenerator.ImportFileGenerator</mainClass>
+                </manifest>
+              </archive>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <phase>package</phase>
+                <!-- after compile since we need the class to be on the cp before executing -->
+                <goals>
+                  <goal>java</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <mainClass>org.jboss.drools.guvnor.importgenerator.ImportFileGenerator</mainClass>
+              <arguments>
+                <argument>-classpath</argument>
+                <!-- bring in the project classpath dependencies below -->
+                <argument>-p</argument>
+                <argument>${basedir}/src/main</argument>
+                <!-- directory to start importing from -->
+                <argument>-s</argument>
+                <argument>main</argument>
+                <!-- root of the package name -->
+                <argument>-r</argument>
+                <argument>true</argument>
+                <!-- recurse sub-directories when looking for rules files -->
+                <!-- this is just to avoid bizarrely chosen defaults -->
+                <argument>-e</argument>
+                <argument>XXX</argument>
+                <!-- <argument>[0-9|.]*[.|-]+[SNAPSHOT]+[.|-]*[09|.]*</argument> -->
+                <!-- matches the version directory if it exists -->
+                <argument>-u</argument>
+                <argument>admin</argument>
+                <!-- user account name to import the rules files as -->
+                <argument>-f</argument>
+                <argument>drl,xls</argument>
+                <!-- rule file extension to import -->
+                <argument>-o</argument>
+                <argument>${brms.repository_dump.file}</argument>
+                <!-- import file generated -->
+                <!-- <argument>-c</argument> <argument>functions.drl</argument> functions 
+                  file to look for -->
+                <argument>-n</argument>
+                <argument>1.0.0-SNAPSHOT</argument>
+                <!-- default snapshot name -->
+                <argument>-k</argument>
+                <argument>${brms.server.url}/org.drools.guvnor.Guvnor/package/</argument>
+                <!-- kagent brms server -->
+                <argument>-b</argument>
+                <argument>${basedir}</argument>
+                <!-- optional argument to generate a kagent change-set file -->
+                <argument>-w</argument>
+                <argument>${brms.changeset.file}</argument>
+                <!-- kagent changeset file output -->
+                <!-- optional argument that will add this model to every package -->
+                <argument>-m</argument>
+                <argument>${brms.model.file}</argument>
+                <argument>-V</argument>
+                <!-- verbose output (v=verbose, V=very verbose -->
+              </arguments>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>deploy_brms</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.httpcomponents</groupId>
+          <artifactId>httpmime</artifactId>
+          <version>4.2.1</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.httpcomponents</groupId>
+          <artifactId>httpcore</artifactId>
+          <version>4.2.1</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.httpcomponents</groupId>
+          <artifactId>httpclient</artifactId>
+          <version>4.2.1</version>
+        </dependency>
+      </dependencies>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.groovy.maven</groupId>
+            <artifactId>gmaven-plugin</artifactId>
+            <version>1.0</version>
+            <executions>
+              <execution>
+                <phase>install</phase>
+                <goals>
+                  <goal>execute</goal>
+                </goals>
+                <configuration>
+                  <source><![CDATA[
+                    import org.apache.http.impl.client.DefaultHttpClient
+                    import org.apache.http.client.methods.HttpPost
+                    import org.apache.http.entity.mime.MultipartEntity
+                    import org.apache.http.entity.mime.content.FileBody
+                    import org.apache.http.auth.AuthScope
+                    import org.apache.http.auth.UsernamePasswordCredentials
+
+                    // The input:
+
+                    def name = "${brms.repository_dump.file}"
+                    def f
+                    if(!name.endsWith("zip")){
+                         f = new File(name)
+                    }else{
+                         def zipFile =  new java.util.zip.ZipFile(new File(name))
+                         def zipEntry = zipFile.entries().toList()[0]
+                         def fileContent = zipFile.getInputStream(zipEntry).text
+                          // Create temp file.
+                         f = File.createTempFile("repository_dump", ".xml");
+                         f.deleteOnExit();
+                        // Delete temp file when program exits.
+                        BufferedWriter out = new BufferedWriter(new FileWriter(f));
+                        out.write(fileContent);
+                        out.close();
+                    }
+
+                    // The execution:
+                    DefaultHttpClient httpclient = new DefaultHttpClient()
+                    httpclient.getCredentialsProvider().setCredentials(
+                         new AuthScope(AuthScope.ANY_HOST, AuthScope.ANY_PORT), 
+                         new UsernamePasswordCredentials("${brms.server.user}", 
+                              "${brms.server.password}")
+                         )
+
+                    def post = new HttpPost("${brms.server.url}org.drools.guvnor.Guvnor/backup")
+                    def entity = new MultipartEntity()
+                    def fileBody = new FileBody(f)
+                    entity.addPart("file", fileBody)
+                    post.setEntity(entity)
+
+
+                    def response = httpclient.execute(post)
+                    def status = response.getStatusLine()
+                    if( !(status ==~ /.*OK.*/) )
+                    fail("Unable to deploy repository dump on Guvnor. Return status code: $status" )
+                    else
+                    log.info("Deployment Successful: Result status code $status")
+                    ]]></source>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>
