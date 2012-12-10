@@ -44,7 +44,7 @@
     <brms.repository_dump.file>repository_export.xml</brms.repository_dump.file>
     <!-- the model file that contains the structure if the facts(pojos) used 
       by the rules -->
-    <brms.model.file>${project.build.directory}/dependency/brms-model-1.0.0.jar</brms.model.file>
+    <brms.model.file>${basedir}/dependency/brms-model-1.0.0.jar</brms.model.file>
   </properties>
   <profiles>
     <profile>
@@ -198,7 +198,8 @@
 
                     // The input:
 
-                    def name = "${brms.repository_dump.file}"
+                    def name = "${brms.repository_dump.file.zip}"
+                    print "Archive file: $name"
                     def f
                     if(!name.endsWith("zip")){
                          f = new File(name)
